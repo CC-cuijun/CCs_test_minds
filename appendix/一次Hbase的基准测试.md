@@ -77,9 +77,9 @@ $ bin/hbase org.apache.hadoop.hbase.PerformanceEvaluation sequentialWrite 1
    将该工具包hbase-server-1.1.2-tests.jar,放到hbase的lib目录中，替换原有的hbase-server-1.1.2-tests.jar包，建议在单独的一个服务器上部署该hbase包；
 ## 工具类的使用：
 使用方式与原命令保持一致，注意修改的是sequentialWrite方式，命令如下：
-<pre>
-./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1
-</pre>
+
+> ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1
+
 ## 命令解读：
 <pre>
 -- nomapred 使用线程，不使用mapreduce，模拟实际业务的使用方式
@@ -95,9 +95,8 @@ $ bin/hbase org.apache.hadoop.hbase.PerformanceEvaluation sequentialWrite 1
 
 ### 原生hbase-1.1.2版本测试结果
 
-<pre>
-./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1
-</pre>
+> ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1
+
 
 测试结果
 
@@ -115,18 +114,18 @@ $ bin/hbase org.apache.hadoop.hbase.PerformanceEvaluation sequentialWrite 1
 |slave3 |     物理机 | DataNode/HRegionServer                      |CPU*8| 16GB|
 
 ### Hbase配置优化项：
+
 <pre>
 region划分策略：10g
 memstore：512MB
 hbase.hstore.blockingStoreFiles：100
 flush上下限值：0.75
 </pre>
+
 ### hdp2.5.3.0-37版本测试
 
-----------2017-12-08----------
-<pre>
-./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1
-</pre>
+> ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1
+
 测试结果：
 
 |保存条数|花费时间ms|平均写入速度|99.99%写入耗时ms|DataNode个数|Region划分策略|memstore配置|writeToWAL|CPU|其他配置|备注|
@@ -171,12 +170,12 @@ on tslave3.tsptest,16020,1510496758359, tracking started null, retrying after=10
 2017-11-13 15:43:34.289 [pool-8-thread-4] INFO  o.a.hadoop.hbase.client.AsyncProcess - #331930, waiting for some tasks to finish. Expected max=0, tasksInProgress=10
 </pre>
 
-> 调整regions划分策略为1g后，不再出现该错误
+调整regions划分策略为1g后，不再出现该错误
 
 使用HBase自带测试工具，测试情况如下：
-<pre>
-./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=6000000 --table=test1 --valueSize=50 --compress=LZO --flushCommits=true --autoFlush=true --columns=6 sequentialWrite 1
-</pre>
+
+> ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=6000000 --table=test1 --valueSize=50 --compress=LZO --flushCommits=true --autoFlush=true --columns=6 sequentialWrite 1
+
 > 插入速度约15000t/s
 
 调整参数：
@@ -197,10 +196,13 @@ flush上下限值：0.75
 > 插入速度约：20000t/s
 
 > ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=6000000 --table=test1 --valueSize=20 --compress=LZO --flushCommits=true --autoFlush=true --columns=6 sequentialWrite 1
-
-> 4个client同时插入（4个节点跑脚本，每个启一个client）
+<pre>
+4个client同时插入（4个节点跑脚本，每个启一个client）
+</pre>
 > 插入数度约：8000*4t/s（rowkey存在重复）
+<pre>
 > 4个client同时插入（1个节点跑脚本，启4个clinet）
+</pre>
 > 插入数度约：7500*4t/s
 
 
@@ -419,9 +421,9 @@ flush上下限值：0.75
 #### 第二轮测试
 使用hbase自带测试工具，定制化修改rowkey的生成规则：vin码+纳秒时间戳；
 模拟业务上报，使用1000个VIN码循环写入，8个column，value设置为20bytes;
-<pre>
-./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=true --autoFlush=true --columns=8 sequentialWrite 1
-</pre>
+
+> ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=true --autoFlush=true --columns=8 sequentialWrite 1
+
 |保存条数|花费时间ms|平均写入速度|99.99%写入耗时ms|DataNode个数|Region划分策略|memstore配置|writeToWAL|CPU|内存|磁盘I/O|其他配置 |备注|
 | :----: | :----: | :----: |:----: | :----: |:----: |:----: |:----: |:----: |:----: |:----: |:----: |:----: |
 |10000000|  396528   |  25k/s     |   43.113       |            3|             1g|         512MB|      true | 40%  |     |        |          |     |
@@ -435,9 +437,9 @@ flush上下限值：0.75
 --flushCommits=false
 --autoFlush=false
 </pre>
-<pre>
-./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1
-</pre>
+
+> ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1
+
 |保存条数  |花费时间ms|平均写入速度|99.99%写入耗时ms|DataNode个数|Region划分策略|memstore配置|writeToWAL|CPU |内存|磁盘I/O|其他配置 |备注|
 | :----: | :----: | :----: |:----: | :----: |:----: |:----: |:----: |:----: |:----: |:----: |:----: |:----: |
 |10000000*4|    --     |            |                |            3|             1g|        512MB|      true  |  90% |      |        | 4 clients| cpu利用率太高    |
