@@ -69,25 +69,26 @@ $ bin/hbase org.apache.hadoop.hbase.PerformanceEvaluation sequentialWrite 1
 
 ## 该工具类存在的问题
    经查源码，该工具中randomWrite（随机写入）方式实际为rowkey的写入条数随机取，实际上会比期望的插入条数少很多，且生成的rowkey为顺序递增，不能均衡写入各个region，存在热点问题，不能满足我们的业务模拟；
-## sequentialWrite（顺序写入）方式rowkey的生成方式为顺序递增，不能均衡写入各个region，同样存在热点问题，不能满足我们的业务模拟；
-# 工具类定制化修改
-## 对该工具类中sequentialWrite方式的rowkey生成方式做了修改，修改rowkey的生成规则为vin码+纳秒时间戳，为了消除热点问题，只选择1000个vin码，循环生成rowkey（模拟1000个车辆上报），为了不影响存储时间的统计，将整个rowkey预先放入内存中，在for循环内部直接读取rowkey，提高效率。
-## 该工具基于hbase 1.1.2版本工具类修改，不同的版本之间可能存在差异，需要针对不同的版本做定制化修改；
-# 工具类的部署：将该工具包hbase-server-1.1.2-tests.jar,放到hbase的lib目录中，替换原有的hbase-server-1.1.2-tests.jar包，建议在单独的一个服务器上部署该hbase包；
-# 工具类的使用：使用方式与原命令保持一致，注意修改的是sequentialWrite方式，命令如下：
+   sequentialWrite（顺序写入）方式rowkey的生成方式为顺序递增，不能均衡写入各个region，同样存在热点问题，不能满足我们的业务模拟；
+## 工具类定制化修改
+   对该工具类中sequentialWrite方式的rowkey生成方式做了修改，修改rowkey的生成规则为vin码+纳秒时间戳，为了消除热点问题，只选择1000个vin码，循环生成rowkey（模拟1000个车辆上报），为了不影响存储时间的统计，将整个rowkey预先放入内存中，在for循环内部直接读取rowkey，提高效率。
+   该工具基于hbase 1.1.2版本工具类修改，不同的版本之间可能存在差异，需要针对不同的版本做定制化修改；
+## 工具类的部署：
+   将该工具包hbase-server-1.1.2-tests.jar,放到hbase的lib目录中，替换原有的hbase-server-1.1.2-tests.jar包，建议在单独的一个服务器上部署该hbase包；
+## 工具类的使用：
+使用方式与原命令保持一致，注意修改的是sequentialWrite方式，命令如下：
 <pre>
 ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1
 </pre>
-# 命令解读：
-## --nomapred 使用线程，不使用mapreduce，模拟实际业务的使用方式
-## --rows=10000000 插入1000万条数据
-## --table=test1 插入的表名
-## --valueSize=20 设置values值为20bytes，模拟业务的数据量
-## --compress=LZO 设置开启LZO，模拟实际业务的使用方式
-## --flushCommits=false 关闭flushcommits（这里有一个坑：官方给的使用说明中默认写的false，但经查代码实际给的是true，所以此处一定要设置为false）
-## --columns=8 设置column为8，模拟实际业务的使用方式
-## sequentialWrite 设置为顺序写入（实际已变为随机写入）
-## 1 为开启一个hbase-client
+## 命令解读：
+<pre>
+-- nomapred 使用线程，不使用mapreduce，模拟实际业务的使用方式
+-- rows=10000000 插入1000万条数据
+-- table=test1 插入的表名
+-- valueSize=20 设置values值为20bytes，模拟业务的数据量
+-- compress=LZO 设置开启LZO，模拟实际业务的使用方式
+-- flushCommits=false 关闭flushcommits（这里有一个坑：官方给的使用说明中默认写的false，但经查代码实际给的是true，所以此处一定要设置为false）
+-- columns=8 设置column为8，模拟实际业务的使用方式
+-- sequentialWrite 设置为顺序写入（实际已变为随机写入）1 为开启一个hbase-client
+</pre>
 * 工具注意事项，由于将rowkey事先放入了内存中，该工具对内存的需求很大，在使用该工具包时注意观察客户端服务器的内存消耗情况（设置三个hbase-client每个client写入1000万条数据，会占用6个g的内存），及时调整测试策略，建议部署在内存充足的服务器上。
-
-测试工具下载：https://pan.timanetworks.com/s/nGpw49AXGjS0S8b
