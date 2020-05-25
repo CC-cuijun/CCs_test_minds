@@ -132,3 +132,343 @@ flush上下限值：0.75
 |保存条数|花费时间ms|平均写入速度|99.99%写入耗时ms|DataNode个数|Region划分策略|memstore配置|writeToWAL|CPU|其他配置|备注|
 | :----: | :----: | :----: |:----: | :----: |:----: |:----: |:----: |:----: |:----: |:----: |
 |10000000*3|  465524   |   21k/s*3  |   61.391       |            3|            10g|        255MB|      true  |  70% | 3 clients||
+
+
+### 测试过程记录
+#### 第一轮测试
+
+跑一段时间后，Hbase报错：
+<pre>
+2017-11-13 15:43:34.205 [htable-pool331929-t1] INFO  o.a.hadoop.hbase.client.AsyncProcess - #331929, table=LocationData, attempt=10/35 failed=200ops, last exception: org.apache.hadoop.hbase.RegionTooBusyException: org.apache.hadoop.hbase.RegionTooBusyException: Above memstore limit, regionName=LocationData,XXXL3BXXXH6128349_\x7F\xFF\xFE\xA0K\xD7\xB8\xA2_POSITIONANDSPEED_,1510557386775.b50b404296ab0f2493f33d1b7751de2b., server=tslave3.tsptest,16020,1510496758359, memstoreSize=537936880, blockingMemStoreSize=536870912
+    at org.apache.hadoop.hbase.regionserver.HRegion.checkResources(HRegion.java:3587)
+    at org.apache.hadoop.hbase.regionserver.HRegion.batchMutate(HRegion.java:2792)
+    at org.apache.hadoop.hbase.regionserver.HRegion.batchMutate(HRegion.java:2743)
+    at org.apache.hadoop.hbase.regionserver.RSRpcServices.doBatchOp(RSRpcServices.java:692)
+    at org.apache.hadoop.hbase.regionserver.RSRpcServices.doNonAtomicRegionMutation(RSRpcServices.java:654)
+    at org.apache.hadoop.hbase.regionserver.RSRpcServices.multi(RSRpcServices.java:2031)
+    at org.apache.hadoop.hbase.protobuf.generated.ClientProtos$ClientService$2.callBlockingMethod(ClientProtos.java:32213)
+    at org.apache.hadoop.hbase.ipc.RpcServer.call(RpcServer.java:2114)
+    at org.apache.hadoop.hbase.ipc.CallRunner.run(CallRunner.java:101)
+    at org.apache.hadoop.hbase.ipc.RpcExecutor.consumerLoop(RpcExecutor.java:130)
+    at org.apache.hadoop.hbase.ipc.RpcExecutor$1.run(RpcExecutor.java:107)
+    at java.lang.Thread.run(Thread.java:745)
+on tslave3.tsptest,16020,1510496758359, tracking started null, retrying after=10071ms, replay=200ops
+2017-11-13 15:43:34.225 [htable-pool331930-t1] INFO  o.a.hadoop.hbase.client.AsyncProcess - #331930, table=LocationData, attempt=10/35 failed=200ops, last exception: org.apache.hadoop.hbase.RegionTooBusyException: org.apache.hadoop.hbase.RegionTooBusyException: Above memstore limit, regionName=LocationData,XXXL3BXXXH6128349_\x7F\xFF\xFE\xA0K\xD7\xB8\xA2_POSITIONANDSPEED_,1510557386775.b50b404296ab0f2493f33d1b7751de2b., server=tslave3.tsptest,16020,1510496758359, memstoreSize=537936880, blockingMemStoreSize=536870912
+    at org.apache.hadoop.hbase.regionserver.HRegion.checkResources(HRegion.java:3587)
+    at org.apache.hadoop.hbase.regionserver.HRegion.batchMutate(HRegion.java:2792)
+    at org.apache.hadoop.hbase.regionserver.HRegion.batchMutate(HRegion.java:2743)
+    at org.apache.hadoop.hbase.regionserver.RSRpcServices.doBatchOp(RSRpcServices.java:692)
+    at org.apache.hadoop.hbase.regionserver.RSRpcServices.doNonAtomicRegionMutation(RSRpcServices.java:654)
+    at org.apache.hadoop.hbase.regionserver.RSRpcServices.multi(RSRpcServices.java:2031)
+    at org.apache.hadoop.hbase.protobuf.generated.ClientProtos$ClientService$2.callBlockingMethod(ClientProtos.java:32213)
+    at org.apache.hadoop.hbase.ipc.RpcServer.call(RpcServer.java:2114)
+    at org.apache.hadoop.hbase.ipc.CallRunner.run(CallRunner.java:101)
+    at org.apache.hadoop.hbase.ipc.RpcExecutor.consumerLoop(RpcExecutor.java:130)
+    at org.apache.hadoop.hbase.ipc.RpcExecutor$1.run(RpcExecutor.java:107)
+    at java.lang.Thread.run(Thread.java:745)
+on tslave3.tsptest,16020,1510496758359, tracking started null, retrying after=10081ms, replay=200ops
+2017-11-13 15:43:34.285 [pool-8-thread-2] INFO  o.a.hadoop.hbase.client.AsyncProcess - #331929, waiting for some tasks to finish. Expected max=0, tasksInProgress=10
+2017-11-13 15:43:34.289 [pool-8-thread-4] INFO  o.a.hadoop.hbase.client.AsyncProcess - #331930, waiting for some tasks to finish. Expected max=0, tasksInProgress=10
+</pre>
+
+> 调整regions划分策略为1g后，不再出现该错误
+
+使用HBase自带测试工具，测试情况如下：
+<pre>
+./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=6000000 --table=test1 --valueSize=50 --compress=LZO --flushCommits=true --autoFlush=true --columns=6 sequentialWrite 1
+</pre>
+> 插入速度约15000t/s
+
+调整参数：
+<pre>
+memstore=512MB
+regionsplit=5G
+</pre>
+> 插入速度约18000t/s
+
+调整参数：
+<pre>
+flush上下限值：0.75
+</pre>
+> 插入速度约 18000t/s
+<pre>
+调整valueSize=20bytes
+</pre>
+> 插入速度约：20000t/s
+
+> ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=6000000 --table=test1 --valueSize=20 --compress=LZO --flushCommits=true --autoFlush=true --columns=6 sequentialWrite 1
+
+> 4个client同时插入（4个节点跑脚本，每个启一个client）
+> 插入数度约：8000*4t/s（rowkey存在重复）
+> 4个client同时插入（1个节点跑脚本，启4个clinet）
+> 插入数度约：7500*4t/s
+
+
+参数调整：
+<pre>
+memstore=512MB
+regionsplit=1G
+flush上下限值：0.75
+</pre>
+
+优化测试工具后，测试情况:
+已拆分region，情况如下：
+测试策略：
+> ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=true --autoFlush=true --columns=8 sequentialWrite 1 2>&1|tee result1.log
+
+<pre>
+2017-11-20 16:13:56,218 INFO  [TestClient-0] hbase.PerformanceEvaluation: save total time: 390622ms
+2017-11-20 16:13:56,218 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest latency log (microseconds), on 10000000 measures
+2017-11-20 16:13:56,236 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Min      = 3.0
+2017-11-20 16:13:56,236 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Avg      = 38.0374684
+2017-11-20 16:13:56,236 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest StdDev   = 1037.8337000940983
+2017-11-20 16:13:56,236 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 50th     = 4.0
+2017-11-20 16:13:56,236 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 75th     = 4.0
+2017-11-20 16:13:56,236 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 95th     = 6.0
+2017-11-20 16:13:56,236 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99th     = 9.0
+2017-11-20 16:13:56,236 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99.9th   = 13092.974000000278
+2017-11-20 16:13:56,236 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99.99th  = 43247.52429998759
+2017-11-20 16:13:56,237 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99.999th = 75894.2680304132
+2017-11-20 16:13:56,237 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Max      = 824383.0
+2017-11-20 16:13:56,237 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest valueSize after 0 measures
+2017-11-20 16:13:56,237 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Min      = 0.0
+2017-11-20 16:13:56,237 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Avg      = 0.0
+2017-11-20 16:13:56,237 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest StdDev   = 0.0
+2017-11-20 16:13:56,237 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 50th     = 0.0
+2017-11-20 16:13:56,237 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 75th     = 0.0
+2017-11-20 16:13:56,237 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 95th     = 0.0
+2017-11-20 16:13:56,237 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99th     = 0.0
+2017-11-20 16:13:56,237 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99.9th   = 0.0
+2017-11-20 16:13:56,237 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99.99th  = 0.0
+2017-11-20 16:13:56,237 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99.999th = 0.0
+2017-11-20 16:13:56,237 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Max      = 0.0
+2017-11-20 16:13:56,329 INFO  [TestClient-0] client.ConnectionManager$HConnectionImplementation: Closing zookeeper sessionid=0x15fb964db511289
+2017-11-20 16:13:56,339 INFO  [TestClient-0] zookeeper.ZooKeeper: Session: 0x15fb964db511289 closed
+2017-11-20 16:13:56,339 INFO  [TestClient-0-EventThread] zookeeper.ClientCnxn: EventThread shut down
+2017-11-20 16:13:56,441 INFO  [TestClient-0] hbase.PerformanceEvaluation: Finished class org.apache.hadoop.hbase.PerformanceEvaluation$SequentialWriteTest in 390844ms at offset 0 for 10000000 rows (5.51 MB/s)
+2017-11-20 16:13:56,442 INFO  [TestClient-0] hbase.PerformanceEvaluation: Finished TestClient-0 in 390844ms over 10000000 rows
+</pre>
+
+--writeToWAL=false情况如下：
+<pre>
+2017-11-20 16:27:15,396 INFO  [TestClient-0] hbase.PerformanceEvaluation: save total time: 289756ms
+2017-11-20 16:27:15,396 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest latency log (microseconds), on 10000000 measures
+2017-11-20 16:27:15,425 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Min      = 3.0
+2017-11-20 16:27:15,426 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Avg      = 27.9457851
+2017-11-20 16:27:15,426 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest StdDev   = 723.3358991881652
+2017-11-20 16:27:15,426 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 50th     = 4.0
+2017-11-20 16:27:15,426 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 75th     = 4.0
+2017-11-20 16:27:15,426 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 95th     = 6.0
+2017-11-20 16:27:15,426 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99th     = 10.0
+2017-11-20 16:27:15,426 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99.9th   = 8402.983000000182
+2017-11-20 16:27:15,426 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99.99th  = 29340.777399996296
+2017-11-20 16:27:15,426 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99.999th = 75652.0573401018
+2017-11-20 16:27:15,426 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Max      = 335803.0
+2017-11-20 16:27:15,427 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest valueSize after 0 measures
+2017-11-20 16:27:15,427 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Min      = 0.0
+2017-11-20 16:27:15,427 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Avg      = 0.0
+2017-11-20 16:27:15,427 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest StdDev   = 0.0
+2017-11-20 16:27:15,427 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 50th     = 0.0
+2017-11-20 16:27:15,427 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 75th     = 0.0
+2017-11-20 16:27:15,427 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 95th     = 0.0
+2017-11-20 16:27:15,427 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99th     = 0.0
+2017-11-20 16:27:15,427 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99.9th   = 0.0
+2017-11-20 16:27:15,427 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99.99th  = 0.0
+2017-11-20 16:27:15,427 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99.999th = 0.0
+2017-11-20 16:27:15,427 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Max      = 0.0
+2017-11-20 16:27:15,482 INFO  [TestClient-0] client.ConnectionManager$HConnectionImplementation: Closing zookeeper sessionid=0x25fb36413092426
+2017-11-20 16:27:15,490 INFO  [TestClient-0] zookeeper.ZooKeeper: Session: 0x25fb36413092426 closed
+2017-11-20 16:27:15,490 INFO  [TestClient-0-EventThread] zookeeper.ClientCnxn: EventThread shut down
+2017-11-20 16:27:15,593 INFO  [TestClient-0] hbase.PerformanceEvaluation: Finished class org.apache.hadoop.hbase.PerformanceEvaluation$SequentialWriteTest in 289952ms at offset 0 for 10000000 rows (7.43 MB/s)
+2017-11-20 16:27:15,593 INFO  [TestClient-0] hbase.PerformanceEvaluation: Finished TestClient-0 in 289952ms over 10000000 rows
+</pre>
+
+开启两个client
+<pre>
+2017-11-20 16:45:06,137 INFO  [TestClient-0] hbase.PerformanceEvaluation: save total time: 525269ms
+2017-11-20 16:45:06,138 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest latency log (microseconds), on 10000000 measures
+2017-11-20 16:45:06,165 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Min      = 3.0
+2017-11-20 16:45:06,165 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Avg      = 51.4780589
+2017-11-20 16:45:06,165 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest StdDev   = 1423.7366785986983
+2017-11-20 16:45:06,165 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 50th     = 4.0
+2017-11-20 16:45:06,165 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 75th     = 4.0
+2017-11-20 16:45:06,165 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 95th     = 6.0
+2017-11-20 16:45:06,166 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99th     = 9.0
+2017-11-20 16:45:06,166 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99.9th   = 16839.989000000118
+2017-11-20 16:45:06,166 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99.99th  = 56513.950499991886
+2017-11-20 16:45:06,166 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99.999th = 151244.40662014997
+2017-11-20 16:45:06,166 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Max      = 720978.0
+2017-11-20 16:45:06,166 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest valueSize after 0 measures
+2017-11-20 16:45:06,166 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Min      = 0.0
+2017-11-20 16:45:06,166 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Avg      = 0.0
+2017-11-20 16:45:06,166 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest StdDev   = 0.0
+2017-11-20 16:45:06,166 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 50th     = 0.0
+2017-11-20 16:45:06,166 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 75th     = 0.0
+2017-11-20 16:45:06,166 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 95th     = 0.0
+2017-11-20 16:45:06,166 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99th     = 0.0
+2017-11-20 16:45:06,167 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99.9th   = 0.0
+2017-11-20 16:45:06,167 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99.99th  = 0.0
+2017-11-20 16:45:06,167 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99.999th = 0.0
+2017-11-20 16:45:06,167 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Max      = 0.0
+2017-11-20 16:45:06,335 INFO  [TestClient-0] client.ConnectionManager$HConnectionImplementation: Closing zookeeper sessionid=0x25fb3641309242a
+2017-11-20 16:45:06,342 INFO  [TestClient-0] zookeeper.ZooKeeper: Session: 0x25fb3641309242a closed
+2017-11-20 16:45:06,342 INFO  [TestClient-0-EventThread] zookeeper.ClientCnxn: EventThread shut down
+2017-11-20 16:45:06,445 INFO  [TestClient-0] hbase.PerformanceEvaluation: Finished class org.apache.hadoop.hbase.PerformanceEvaluation$SequentialWriteTest in 525574ms at offset 0 for 10000000 rows (4.1 MB/s)
+2017-11-20 16:45:06,445 INFO  [TestClient-0] hbase.PerformanceEvaluation: Finished TestClient-0 in 525574ms over 10000000 rows
+2017-11-20 16:45:34,082 INFO  [TestClient-1] hbase.PerformanceEvaluation: save total time: 553135ms
+2017-11-20 16:45:34,082 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest latency log (microseconds), on 10000000 measures
+2017-11-20 16:45:34,101 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest Min      = 3.0
+2017-11-20 16:45:34,101 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest Avg      = 54.2702524
+2017-11-20 16:45:34,101 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest StdDev   = 1594.4939290755417
+2017-11-20 16:45:34,101 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 50th     = 4.0
+2017-11-20 16:45:34,101 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 75th     = 4.0
+2017-11-20 16:45:34,101 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 95th     = 6.0
+2017-11-20 16:45:34,102 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 99th     = 9.0
+2017-11-20 16:45:34,102 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 99.9th   = 18867.898000001092
+2017-11-20 16:45:34,102 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 99.99th  = 81734.68889998179
+2017-11-20 16:45:34,102 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 99.999th = 136740.60747014615
+2017-11-20 16:45:34,102 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest Max      = 685969.0
+2017-11-20 16:45:34,102 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest valueSize after 0 measures
+2017-11-20 16:45:34,102 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest Min      = 0.0
+2017-11-20 16:45:34,102 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest Avg      = 0.0
+2017-11-20 16:45:34,102 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest StdDev   = 0.0
+2017-11-20 16:45:34,102 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 50th     = 0.0
+2017-11-20 16:45:34,102 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 75th     = 0.0
+2017-11-20 16:45:34,102 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 95th     = 0.0
+2017-11-20 16:45:34,102 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 99th     = 0.0
+2017-11-20 16:45:34,102 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 99.9th   = 0.0
+2017-11-20 16:45:34,102 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 99.99th  = 0.0
+2017-11-20 16:45:34,102 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 99.999th = 0.0
+2017-11-20 16:45:34,102 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest Max      = 0.0
+2017-11-20 16:45:34,192 INFO  [TestClient-1] client.ConnectionManager$HConnectionImplementation: Closing zookeeper sessionid=0x15fb964db511299
+2017-11-20 16:45:34,206 INFO  [TestClient-1] zookeeper.ZooKeeper: Session: 0x15fb964db511299 closed
+2017-11-20 16:45:34,206 INFO  [TestClient-1-EventThread] zookeeper.ClientCnxn: EventThread shut down
+2017-11-20 16:45:34,307 INFO  [TestClient-1] hbase.PerformanceEvaluation: Finished class org.apache.hadoop.hbase.PerformanceEvaluation$SequentialWriteTest in 553359ms at offset 10000000 for 10000000 rows (3.89 MB/s)
+2017-11-20 16:45:34,307 INFO  [TestClient-1] hbase.PerformanceEvaluation: Finished TestClient-1 in 553359ms over 10000000 rows
+2017-11-20 16:45:34,308 INFO  [main] hbase.PerformanceEvaluation: [SequentialWriteTest] Summary of timings (ms): [525574, 553359]
+2017-11-20 16:45:34,309 INFO  [main] hbase.PerformanceEvaluation: [SequentialWriteTest]    Min: 525574ms    Max: 553359ms    Avg: 539466ms
+</pre>
+
+开启两个client，并设置--writeToWAL=false：
+<pre>
+2017-11-20 16:56:43,944 INFO  [TestClient-0] hbase.PerformanceEvaluation: save total time: 409123ms
+2017-11-20 16:56:43,944 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest latency log (microseconds), on 10000000 measures
+2017-11-20 16:56:43,962 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Min      = 3.0
+2017-11-20 16:56:43,963 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Avg      = 39.8398979
+2017-11-20 16:56:43,963 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest StdDev   = 1130.340946500589
+2017-11-20 16:56:43,963 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 50th     = 4.0
+2017-11-20 16:56:43,963 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 75th     = 5.0
+2017-11-20 16:56:43,963 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 95th     = 6.0
+2017-11-20 16:56:43,963 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99th     = 10.0
+2017-11-20 16:56:43,963 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99.9th   = 12296.98600000015
+2017-11-20 16:56:43,963 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99.99th  = 52012.58079999685
+2017-11-20 16:56:43,963 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99.999th = 115895.528550321
+2017-11-20 16:56:43,963 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Max      = 438113.0
+2017-11-20 16:56:43,963 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest valueSize after 0 measures
+2017-11-20 16:56:43,963 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Min      = 0.0
+2017-11-20 16:56:43,963 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Avg      = 0.0
+2017-11-20 16:56:43,963 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest StdDev   = 0.0
+2017-11-20 16:56:43,963 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 50th     = 0.0
+2017-11-20 16:56:43,963 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 75th     = 0.0
+2017-11-20 16:56:43,963 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 95th     = 0.0
+2017-11-20 16:56:43,964 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99th     = 0.0
+2017-11-20 16:56:43,964 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99.9th   = 0.0
+2017-11-20 16:56:43,964 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99.99th  = 0.0
+2017-11-20 16:56:43,964 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest 99.999th = 0.0
+2017-11-20 16:56:43,964 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Max      = 0.0
+2017-11-20 16:56:44,113 INFO  [TestClient-0] client.ConnectionManager$HConnectionImplementation: Closing zookeeper sessionid=0x25fb3641309242c
+2017-11-20 16:56:44,124 INFO  [TestClient-0] zookeeper.ZooKeeper: Session: 0x25fb3641309242c closed
+2017-11-20 16:56:44,124 INFO  [TestClient-0-EventThread] zookeeper.ClientCnxn: EventThread shut down
+2017-11-20 16:56:44,226 INFO  [TestClient-0] hbase.PerformanceEvaluation: Finished class org.apache.hadoop.hbase.PerformanceEvaluation$SequentialWriteTest in 409404ms at offset 0 for 10000000 rows (5.26 MB/s)
+2017-11-20 16:56:44,227 INFO  [TestClient-0] hbase.PerformanceEvaluation: Finished TestClient-0 in 409404ms over 10000000 rows
+2017-11-20 16:56:53,938 INFO  [TestClient-1] hbase.PerformanceEvaluation: save total time: 418508ms
+2017-11-20 16:56:53,938 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest latency log (microseconds), on 10000000 measures
+2017-11-20 16:56:53,974 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest Min      = 3.0
+2017-11-20 16:56:53,975 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest Avg      = 40.8389075
+2017-11-20 16:56:53,975 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest StdDev   = 1201.1793532252063
+2017-11-20 16:56:53,975 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 50th     = 4.0
+2017-11-20 16:56:53,975 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 75th     = 5.0
+2017-11-20 16:56:53,975 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 95th     = 6.0
+2017-11-20 16:56:53,975 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 99th     = 9.0
+2017-11-20 16:56:53,975 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 99.9th   = 12024.976000000257
+2017-11-20 16:56:53,975 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 99.99th  = 47703.199599999934
+2017-11-20 16:56:53,975 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 99.999th = 126867.98867023061
+2017-11-20 16:56:53,975 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest Max      = 384722.0
+2017-11-20 16:56:53,975 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest valueSize after 0 measures
+2017-11-20 16:56:53,975 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest Min      = 0.0
+2017-11-20 16:56:53,975 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest Avg      = 0.0
+2017-11-20 16:56:53,975 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest StdDev   = 0.0
+2017-11-20 16:56:53,975 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 50th     = 0.0
+2017-11-20 16:56:53,975 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 75th     = 0.0
+2017-11-20 16:56:53,975 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 95th     = 0.0
+2017-11-20 16:56:53,975 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 99th     = 0.0
+2017-11-20 16:56:53,976 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 99.9th   = 0.0
+2017-11-20 16:56:53,976 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 99.99th  = 0.0
+2017-11-20 16:56:53,976 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest 99.999th = 0.0
+2017-11-20 16:56:53,976 INFO  [TestClient-1] hbase.PerformanceEvaluation: SequentialWriteTest Max      = 0.0
+2017-11-20 16:56:54,052 INFO  [TestClient-1] client.ConnectionManager$HConnectionImplementation: Closing zookeeper sessionid=0x15fb964db51129b
+2017-11-20 16:56:54,062 INFO  [TestClient-1] zookeeper.ZooKeeper: Session: 0x15fb964db51129b closed
+2017-11-20 16:56:54,063 INFO  [TestClient-1-EventThread] zookeeper.ClientCnxn: EventThread shut down
+2017-11-20 16:56:54,164 INFO  [TestClient-1] hbase.PerformanceEvaluation: Finished class org.apache.hadoop.hbase.PerformanceEvaluation$SequentialWriteTest in 418733ms at offset 10000000 for 10000000 rows (5.15 MB/s)
+2017-11-20 16:56:54,164 INFO  [TestClient-1] hbase.PerformanceEvaluation: Finished TestClient-1 in 418733ms over 10000000 rows
+2017-11-20 16:56:54,164 INFO  [main] hbase.PerformanceEvaluation: [SequentialWriteTest] Summary of timings (ms): [409404, 418733]
+2017-11-20 16:56:54,165 INFO  [main] hbase.PerformanceEvaluation: [SequentialWriteTest]    Min: 409404ms    Max: 418733ms    Avg: 414068ms
+
+</pre>
+
+#### 第二轮测试
+使用hbase自带测试工具，定制化修改rowkey的生成规则：vin码+纳秒时间戳；
+模拟业务上报，使用1000个VIN码循环写入，8个column，value设置为20bytes;
+<pre>
+./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=true --autoFlush=true --columns=8 sequentialWrite 1
+</pre>
+|保存条数|花费时间ms|平均写入速度|99.99%写入耗时ms|DataNode个数|Region划分策略|memstore配置|writeToWAL|CPU|内存|磁盘I/O|其他配置 |备注|
+| :----: | :----: | :----: |:----: | :----: |:----: |:----: |:----: |:----: |:----: |:----: |:----: |:----: |
+|10000000|  396528   |  25k/s     |   43.113       |            3|             1g|         512MB|      true | 40%  |     |        |          |     |
+|10000000|  293303   |  35k/s     |   32.213       |            3|             1g|         512MB|      false| 40%  |     |        |          |     |
+|10000000*2|  374142   |  26k/s*2   |   46.904       |            3|             1g|         512MB|      true | 55%  |     |        | 2 clients|     |
+|10000000*4|  371640   |  26k/s*4   |   46.583       |            3|             1g|         512MB|      false | 80%  |     |        | 4 clients|     |
+|10000000*4|  --       |            |                |            3|             1g|         512MB|      true  | 90%  |     |        | 4 clients|  该方式cpu利用率太高   |
+
+修改测试脚本：
+<pre>
+--flushCommits=false
+--autoFlush=false
+</pre>
+<pre>
+./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1
+</pre>
+|保存条数  |花费时间ms|平均写入速度|99.99%写入耗时ms|DataNode个数|Region划分策略|memstore配置|writeToWAL|CPU |内存|磁盘I/O|其他配置 |备注|
+| :----: | :----: | :----: |:----: | :----: |:----: |:----: |:----: |:----: |:----: |:----: |:----: |:----: |
+|10000000*4|    --     |            |                |            3|             1g|        512MB|      true  |  90% |      |        | 4 clients| cpu利用率太高    |
+|10000000*2|  489570   |  20k/s*2   |   53.359       |            3|             1g|        512MB|      true  |  60% |      |        | 2 clients|     |
+|10000000*3|  539062   |  18k/s*3   |   64.907       |            3|             1g|        512MB|      true  |  75% |      |        | 3 clients| 用另外一台虚拟机测试，计划调整到slave3上跑脚本|
+|10000000*3|  644892   |  15k/s*3   |   74.981       |            3|             1g|        512MB|      true  |  75% |      |        | 3 clients| 每个节点上跑一个脚本，共3个    |
+|10000000*2|  520377   |  19k/s*2   |   62.160       |            3|             1g|        512MB|      true  |  55% |      |        | 2 clients|     |
+
+* 保存一段时间后，性能下降----原因未知
+
+清空数据重新测试：
+<pre>
+./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1
+</pre>
+|保存条数  |花费时间ms|平均写入速度|99.99%写入耗时ms|DataNode个数|Region划分策略|memstore配置|writeToWAL|CPU |内存|磁盘I/O|其他配置 |备注|
+| :----: | :----: | :----: |:----: | :----: |:----: |:----: |:----: |:----: |:----: |:----: |:----: |:----: |
+|10000000  |  391789   |   25k/s    |   40.749       |            3|             1g|        512MB|      true  |  40% |      |        | 1 clients|     |
+|10000000*2|  497258   |   20k/s*2  |   53.440       |            3|             1g|        512MB|      true  |  50% |      |        | 2 clients|   |
+|10000000*3|  565870   |   17k/s*3  |   60.888       |            3|             1g|        512MB|      true  |  70% |      |        | 3 clients|     |
+|10000000*3|  543435   |   18k/s*3  |   63.467       |            3|            10g|        512MB|      true  |  75% |      |        | 3 clients|   |
+|10000000*3|  453985   |   22k/s*3  |   51.078       |            3|            10g|        512MB|      true  |  75% |      |        | 3 clients|hbase.hstore.blockingStoreFiles改为100|
+
+单个data-node
+<pre>
+./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1
+</pre>
+|保存条数  |花费时间ms|平均写入速度|99.99%写入耗时ms|DataNode个数|Region划分策略|memstore配置|writeToWAL|CPU |内存|磁盘I/O|其他配置 |备注|
+| :----: | :----: | :----: |:----: | :----: |:----: |:----: |:----: |:----: |:----: |:----: |:----: |:----: |
+|10000000  |   1024198 |  9k/s     |  149.936        |            1|            10g|        512MB|      true  |  40% |      |        | 1 clients|     |
+|10000000*2|   1382774 |  7.2k/s*2 |  196.610        |            1|            10g|        512MB|      true  |  45% |      |        | 2 clients|     |
+|10000000*3|   1727288 |  5.7k/s*3 |  254.034        |            1|            10g|        512MB|      true  |  75% |      |        | 3 clients|     |
+|10000000*3|  1609463  |  6.2k/s*3 |   238.156       |            1|           100g|        512MB|      true  |  75% |      |        | 3 clients|hbase.hstore.blockingStoreFiles改为100|
+
+* 注意测试region爆发split时的性能表现---测试结果很平稳，性能未出现明显变化
