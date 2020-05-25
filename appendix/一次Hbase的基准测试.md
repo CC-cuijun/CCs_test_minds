@@ -92,3 +92,43 @@ $ bin/hbase org.apache.hadoop.hbase.PerformanceEvaluation sequentialWrite 1
 -- sequentialWrite 设置为顺序写入（实际已变为随机写入）1 为开启一个hbase-client
 </pre>
 * 工具注意事项，由于将rowkey事先放入了内存中，该工具对内存的需求很大，在使用该工具包时注意观察客户端服务器的内存消耗情况（设置三个hbase-client每个client写入1000万条数据，会占用6个g的内存），及时调整测试策略，建议部署在内存充足的服务器上。
+
+### 原生hbase-1.1.2版本测试结果
+
+<pre>
+./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1
+</pre>
+
+测试结果
+
+|保存条数  |花费时间ms|平均写入速度|99.99%写入耗时ms|DataNode个数|Region划分策略|memstore配置|writeToWAL|CPU |其他配置 |备注|
+| :----: | :----: | :----: |:----: | :----: |:----: |:----: |:----: |:----: |:----: |:----: |
+|10000000*3|  453985   |   22k/s*3  |   51.078       |            3|            10g|        512MB|      true  |  75% | 3 clients||
+
+服务器配置信息
+
+|节点|服务器类型|作用|cpu |内存|
+| :----: | :----: | :----: |:----: | :----: |
+|master1|     物理机 | NameNode/SecondaryNameNode/HMaster | CPU*8| 16GB|
+|master2|     物理机 | DataNode/HRegionServer             |CPU*8| 16GB|
+|slave1 |     物理机 | DataNode/HRegionServer             |CPU*8| 16GB|
+|slave3 |     物理机 | DataNode/HRegionServer                      |CPU*8| 16GB|
+
+### Hbase配置优化项：
+<pre>
+region划分策略：10g
+memstore：512MB
+hbase.hstore.blockingStoreFiles：100
+flush上下限值：0.75
+</pre>
+### hdp2.5.3.0-37版本测试
+
+----------2017-12-08----------
+<pre>
+./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1
+</pre>
+测试结果：
+
+|保存条数|花费时间ms|平均写入速度|99.99%写入耗时ms|DataNode个数|Region划分策略|memstore配置|writeToWAL|CPU|其他配置|备注|
+| :----: | :----: | :----: |:----: | :----: |:----: |:----: |:----: |:----: |:----: |:----: |
+|10000000*3|  465524   |   21k/s*3  |   61.391       |            3|            10g|        255MB|      true  |  70% | 3 clients||
