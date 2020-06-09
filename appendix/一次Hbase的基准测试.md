@@ -190,7 +190,8 @@ Hbase配置调整：
 <pre>
 flush上下限值：0.75
 </pre>
-> 插入速度约 18000条/s
+> 插入速度约 18000条/s  
+
 脚本参数调整：
 <pre>
 valueSize=20bytes
@@ -435,7 +436,7 @@ flush上下限值：0.75
 |10000000*4|  371640   |  26k/s*4   |   46.583       |            3|             1g|         512MB|      false | 80%  |     |        | 4 clients|     |
 |10000000*4|  --       |            |                |            3|             1g|         512MB|      true  | 90%  |     |        | 4 clients|  该方式cpu利用率太高   |
 
-脚本策略调整：
+脚本参数调整：
 <pre>
 --flushCommits=false
 --autoFlush=false
