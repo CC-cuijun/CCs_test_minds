@@ -2,7 +2,7 @@
 
 ## Hbase测试工具
 
-## hbase自带测试工具类说明
+### hbase自带测试工具类说明
 
 org.apache.hadoop.hbase.PerformanceEvaluation类是hbase官方提供的测试工具类，提供多种测试方式，使用方式如下：
 <pre>
@@ -67,20 +67,20 @@ To run a single evaluation client:
 $ bin/hbase org.apache.hadoop.hbase.PerformanceEvaluation sequentialWrite 1
 </pre>
 
-## 该工具类存在的问题
+### 该工具类存在的问题
    经查源码，该工具中randomWrite（随机写入）方式实际为rowkey的写入条数随机取，实际上会比期望的插入条数少很多，且生成的rowkey为顺序递增，不能均衡写入各个region，存在热点问题，不能满足我们的业务模拟；
    sequentialWrite（顺序写入）方式rowkey的生成方式为顺序递增，不能均衡写入各个region，同样存在热点问题，不能满足我们的业务模拟；
-## 工具类定制化修改
+### 工具类定制化修改
    对该工具类中sequentialWrite方式的rowkey生成方式做了修改，修改rowkey的生成规则为vin码+纳秒时间戳，为了消除热点问题，只选择1000个vin码，循环生成rowkey（模拟1000个车辆上报），为了不影响存储时间的统计，将整个rowkey预先放入内存中，在for循环内部直接读取rowkey，提高效率。
    该工具基于hbase 1.1.2版本工具类修改，不同的版本之间可能存在差异，需要针对不同的版本做定制化修改；
-## 工具类的部署：
+### 工具类的部署：
    将该工具包hbase-server-1.1.2-tests.jar,放到hbase的lib目录中，替换原有的hbase-server-1.1.2-tests.jar包，建议在单独的一个服务器上部署该hbase包；
-## 工具类的使用：
+### 工具类的使用：
 使用方式与原命令保持一致，注意修改的是sequentialWrite方式，命令如下：
 
 > ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1
 
-## 命令解读：
+### 命令解读：
 <pre>
 -- nomapred 使用线程，不使用mapreduce，模拟实际业务的使用方式
 -- rows=10000000 插入1000万条数据
@@ -93,6 +93,16 @@ $ bin/hbase org.apache.hadoop.hbase.PerformanceEvaluation sequentialWrite 1
 </pre>
 * 工具注意事项，由于将rowkey事先放入了内存中，该工具对内存的需求很大，在使用该工具包时注意观察客户端服务器的内存消耗情况（设置三个hbase-client每个client写入1000万条数据，会占用6个g的内存），及时调整测试策略，建议部署在内存充足的服务器上。
 
+
+### 测试服务器配置信息
+
+|节点|服务器类型|作用|cpu |内存|
+| :----: | :----: | :----: |:----: | :----: |
+|master1|     物理机 | NameNode/SecondaryNameNode/HMaster | CPU*8| 16GB|
+|master2|     物理机 | DataNode/HRegionServer             |CPU*8| 16GB|
+|slave1 |     物理机 | DataNode/HRegionServer             |CPU*8| 16GB|
+|slave3 |     物理机 | DataNode/HRegionServer                      |CPU*8| 16GB|
+
 ### 原生hbase-1.1.2版本测试结果
 
 > ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1
@@ -104,17 +114,8 @@ $ bin/hbase org.apache.hadoop.hbase.PerformanceEvaluation sequentialWrite 1
 | :----: | :----: | :----: |:----: | :----: |:----: |:----: |:----: |:----: |:----: |:----: |
 |10000000*3|  453985   |   22k/s*3  |   51.078       |            3|            10g|        512MB|      true  |  75% | 3 clients||
 
-服务器配置信息
 
-|节点|服务器类型|作用|cpu |内存|
-| :----: | :----: | :----: |:----: | :----: |
-|master1|     物理机 | NameNode/SecondaryNameNode/HMaster | CPU*8| 16GB|
-|master2|     物理机 | DataNode/HRegionServer             |CPU*8| 16GB|
-|slave1 |     物理机 | DataNode/HRegionServer             |CPU*8| 16GB|
-|slave3 |     物理机 | DataNode/HRegionServer                      |CPU*8| 16GB|
-
-### Hbase配置优化项：
-
+### Hbase配置项：
 <pre>
 region划分策略：10g
 memstore：512MB
@@ -133,8 +134,8 @@ flush上下限值：0.75
 |10000000*3|  465524   |   21k/s*3  |   61.391       |            3|            10g|        255MB|      true  |  70% | 3 clients||
 
 
-### 测试过程记录
-#### 第一轮测试
+## 测试过程记录
+### 第一轮测试
 
 跑一段时间后，Hbase报错：
 <pre>
@@ -170,7 +171,7 @@ on tslave3.tsptest,16020,1510496758359, tracking started null, retrying after=10
 2017-11-13 15:43:34.289 [pool-8-thread-4] INFO  o.a.hadoop.hbase.client.AsyncProcess - #331930, waiting for some tasks to finish. Expected max=0, tasksInProgress=10
 </pre>
 
-调整regions划分策略为1g后，不再出现该错误
+> 调整regions划分策略为1g后，不再出现该错误
 
 使用HBase自带测试工具，测试情况如下：
 
@@ -205,7 +206,6 @@ flush上下限值：0.75
 </pre>
 > 插入数度约：7500*4t/s
 
-
 参数调整：
 <pre>
 memstore=512MB
@@ -213,8 +213,10 @@ regionsplit=1G
 flush上下限值：0.75
 </pre>
 
-优化测试工具后，测试情况:
-已拆分region，情况如下：
+
+
+### 优化测试工具（hbase自带测试工具）：
+拆分region，情况如下：
 测试策略：
 > ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=true --autoFlush=true --columns=8 sequentialWrite 1 2>&1|tee result1.log
 
@@ -418,7 +420,7 @@ flush上下限值：0.75
 
 </pre>
 
-#### 第二轮测试
+### 第二轮测试
 使用hbase自带测试工具，定制化修改rowkey的生成规则：vin码+纳秒时间戳；
 模拟业务上报，使用1000个VIN码循环写入，8个column，value设置为20bytes;
 
