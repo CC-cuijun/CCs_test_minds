@@ -177,36 +177,37 @@ on tslave3.tsptest,16020,1510496758359, tracking started null, retrying after=10
 
 > ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=6000000 --table=test1 --valueSize=50 --compress=LZO --flushCommits=true --autoFlush=true --columns=6 sequentialWrite 1
 
-> 插入速度约15000t/s
+> 插入速度约15000条/s
 
-调整参数：
+Hbase配置调整：
 <pre>
 memstore=512MB
 regionsplit=5G
 </pre>
-> 插入速度约18000t/s
+> 插入速度约18000条/s
 
-调整参数：
+Hbase配置调整：
 <pre>
 flush上下限值：0.75
 </pre>
-> 插入速度约 18000t/s
+> 插入速度约 18000条/s
+脚本参数调整：
 <pre>
-调整valueSize=20bytes
+valueSize=20bytes
 </pre>
-> 插入速度约：20000t/s
+> 插入速度约：20000条/s
 
-> ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=6000000 --table=test1 --valueSize=20 --compress=LZO --flushCommits=true --autoFlush=true --columns=6 sequentialWrite 1
+脚本策略调整：
 <pre>
-4个client同时插入（4个节点跑脚本，每个启一个client）
+4个client同时插入（4个节点每个启一个client）
 </pre>
-> 插入数度约：8000*4t/s（rowkey存在重复）
+> 插入数度约：8000*4条/s（rowkey存在重复）
 <pre>
-> 4个client同时插入（1个节点跑脚本，启4个clinet）
+> 4个client同时插入（1个节点启4个clinet）
 </pre>
 > 插入数度约：7500*4t/s
 
-参数调整：
+Hbase配置项：
 <pre>
 memstore=512MB
 regionsplit=1G
@@ -216,7 +217,7 @@ flush上下限值：0.75
 
 
 ### 优化测试工具（hbase自带测试工具）：
-拆分region，情况如下：
+#### 拆分region，情况如下：
 测试策略：
 > ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=true --autoFlush=true --columns=8 sequentialWrite 1 2>&1|tee result1.log
 
@@ -253,7 +254,7 @@ flush上下限值：0.75
 2017-11-20 16:13:56,442 INFO  [TestClient-0] hbase.PerformanceEvaluation: Finished TestClient-0 in 390844ms over 10000000 rows
 </pre>
 
---writeToWAL=false情况如下：
+#### --writeToWAL=false情况如下：
 <pre>
 2017-11-20 16:27:15,396 INFO  [TestClient-0] hbase.PerformanceEvaluation: save total time: 289756ms
 2017-11-20 16:27:15,396 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest latency log (microseconds), on 10000000 measures
@@ -287,7 +288,7 @@ flush上下限值：0.75
 2017-11-20 16:27:15,593 INFO  [TestClient-0] hbase.PerformanceEvaluation: Finished TestClient-0 in 289952ms over 10000000 rows
 </pre>
 
-开启两个client
+#### 开启两个client
 <pre>
 2017-11-20 16:45:06,137 INFO  [TestClient-0] hbase.PerformanceEvaluation: save total time: 525269ms
 2017-11-20 16:45:06,138 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest latency log (microseconds), on 10000000 measures
@@ -353,7 +354,7 @@ flush上下限值：0.75
 2017-11-20 16:45:34,309 INFO  [main] hbase.PerformanceEvaluation: [SequentialWriteTest]    Min: 525574ms    Max: 553359ms    Avg: 539466ms
 </pre>
 
-开启两个client，并设置--writeToWAL=false：
+#### 开启两个client，并设置--writeToWAL=false：
 <pre>
 2017-11-20 16:56:43,944 INFO  [TestClient-0] hbase.PerformanceEvaluation: save total time: 409123ms
 2017-11-20 16:56:43,944 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest latency log (microseconds), on 10000000 measures
@@ -434,7 +435,7 @@ flush上下限值：0.75
 |10000000*4|  371640   |  26k/s*4   |   46.583       |            3|             1g|         512MB|      false | 80%  |     |        | 4 clients|     |
 |10000000*4|  --       |            |                |            3|             1g|         512MB|      true  | 90%  |     |        | 4 clients|  该方式cpu利用率太高   |
 
-修改测试脚本：
+脚本策略调整：
 <pre>
 --flushCommits=false
 --autoFlush=false
@@ -452,7 +453,7 @@ flush上下限值：0.75
 
 * 保存一段时间后，性能下降----原因未知
 
-清空数据重新测试：
+#### 清空数据重新测试：
 <pre>
 ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1
 </pre>
@@ -464,7 +465,7 @@ flush上下限值：0.75
 |10000000*3|  543435   |   18k/s*3  |   63.467       |            3|            10g|        512MB|      true  |  75% |      |        | 3 clients|   |
 |10000000*3|  453985   |   22k/s*3  |   51.078       |            3|            10g|        512MB|      true  |  75% |      |        | 3 clients|hbase.hstore.blockingStoreFiles改为100|
 
-单个data-node
+#### 单个data-node
 <pre>
 ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1
 </pre>
