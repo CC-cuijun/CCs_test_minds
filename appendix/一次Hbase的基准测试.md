@@ -115,7 +115,7 @@ $ bin/hbase org.apache.hadoop.hbase.PerformanceEvaluation sequentialWrite 1
 |10000000*3|  453985   |   22k/s*3  |   51.078       |            3|            10g|        512MB|      true  |  75% | 3 clients||
 
 
-### Hbase配置项：
+Hbase配置项：
 <pre>
 region划分策略：10g
 memstore：512MB
