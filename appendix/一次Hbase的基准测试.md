@@ -109,6 +109,7 @@ $ bin/hbase org.apache.hadoop.hbase.PerformanceEvaluation sequentialWrite 1
 > ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1  
 
 测试结果:  
+
 |保存条数  |花费时间ms|平均写入速度|99.99%写入耗时ms|DataNode个数|Region划分策略|memstore配置|writeToWAL|CPU |其他配置 |备注|
 | :----: | :----: | :----: |:----: | :----: |:----: |:----: |:----: |:----: |:----: |:----: |
 |10000000*3|  453985   |   22k/s*3  |   51.078       |            3|            10g|        512MB|      true  |  75% | 3 clients||  
@@ -126,6 +127,7 @@ flush上下限值：0.75
 > ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1
 
 测试结果：
+
 |保存条数|花费时间ms|平均写入速度|99.99%写入耗时ms|DataNode个数|Region划分策略|memstore配置|writeToWAL|CPU|其他配置|备注|
 | :----: | :----: | :----: |:----: | :----: |:----: |:----: |:----: |:----: |:----: |:----: |
 |10000000*3|  465524   |   21k/s*3  |   61.391       |            3|            10g|        255MB|      true  |  70% | 3 clients||
@@ -455,6 +457,7 @@ flush上下限值：0.75
 <pre>
 ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1
 </pre>
+
 |保存条数  |花费时间ms|平均写入速度|99.99%写入耗时ms|DataNode个数|Region划分策略|memstore配置|writeToWAL|CPU |内存|磁盘I/O|其他配置 |备注|
 | :----: | :----: | :----: |:----: | :----: |:----: |:----: |:----: |:----: |:----: |:----: |:----: |:----: |
 |10000000  |  391789   |   25k/s    |   40.749       |            3|             1g|        512MB|      true  |  40% |      |        | 1 clients|     |
@@ -467,6 +470,7 @@ flush上下限值：0.75
 <pre>
 ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1
 </pre>
+
 |保存条数  |花费时间ms|平均写入速度|99.99%写入耗时ms|DataNode个数|Region划分策略|memstore配置|writeToWAL|CPU |内存|磁盘I/O|其他配置 |备注|
 | :----: | :----: | :----: |:----: | :----: |:----: |:----: |:----: |:----: |:----: |:----: |:----: |:----: |
 |10000000  |   1024198 |  9k/s     |  149.936        |            1|            10g|        512MB|      true  |  40% |      |        | 1 clients|     |
