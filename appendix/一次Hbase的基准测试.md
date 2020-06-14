@@ -81,6 +81,7 @@ $ bin/hbase org.apache.hadoop.hbase.PerformanceEvaluation sequentialWrite 1
 > ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1
 
 ### 命令解读：
+
 <pre>
 -- nomapred 使用线程，不使用mapreduce，模拟实际业务的使用方式
 -- rows=10000000 插入1000万条数据
@@ -91,6 +92,7 @@ $ bin/hbase org.apache.hadoop.hbase.PerformanceEvaluation sequentialWrite 1
 -- columns=8 设置column为8，模拟实际业务的使用方式
 -- sequentialWrite 设置为顺序写入（实际已变为随机写入）1 为开启一个hbase-client
 </pre>
+
 * 工具注意事项，由于将rowkey事先放入了内存中，该工具对内存的需求很大，在使用该工具包时注意观察客户端服务器的内存消耗情况（设置三个hbase-client每个client写入1000万条数据，会占用6个g的内存），及时调整测试策略，建议部署在内存充足的服务器上。  
 
 ### 测试服务器配置信息  
