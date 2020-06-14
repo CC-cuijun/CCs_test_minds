@@ -246,7 +246,9 @@ flush上下限值：0.75
 2017-11-20 16:13:56,441 INFO  [TestClient-0] hbase.PerformanceEvaluation: Finished class org.apache.hadoop.hbase.PerformanceEvaluation$SequentialWriteTest in 390844ms at offset 0 for 10000000 rows (5.51 MB/s)
 2017-11-20 16:13:56,442 INFO  [TestClient-0] hbase.PerformanceEvaluation: Finished TestClient-0 in 390844ms over 10000000 rows
 ```
+
 #### --writeToWAL=false情况如下：
+
 ```
 2017-11-20 16:27:15,396 INFO  [TestClient-0] hbase.PerformanceEvaluation: save total time: 289756ms
 2017-11-20 16:27:15,396 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest latency log (microseconds), on 10000000 measures
@@ -279,8 +281,11 @@ flush上下限值：0.75
 2017-11-20 16:27:15,593 INFO  [TestClient-0] hbase.PerformanceEvaluation: Finished class org.apache.hadoop.hbase.PerformanceEvaluation$SequentialWriteTest in 289952ms at offset 0 for 10000000 rows (7.43 MB/s)
 2017-11-20 16:27:15,593 INFO  [TestClient-0] hbase.PerformanceEvaluation: Finished TestClient-0 in 289952ms over 10000000 rows
 ```
+
 #### 开启两个client
-```2017-11-20 16:45:06,137 INFO  [TestClient-0] hbase.PerformanceEvaluation: save total time: 525269ms
+
+```
+2017-11-20 16:45:06,137 INFO  [TestClient-0] hbase.PerformanceEvaluation: save total time: 525269ms
 2017-11-20 16:45:06,138 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest latency log (microseconds), on 10000000 measures
 2017-11-20 16:45:06,165 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Min      = 3.0
 2017-11-20 16:45:06,165 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Avg      = 51.4780589
@@ -343,7 +348,9 @@ flush上下限值：0.75
 2017-11-20 16:45:34,308 INFO  [main] hbase.PerformanceEvaluation: [SequentialWriteTest] Summary of timings (ms): [525574, 553359]
 2017-11-20 16:45:34,309 INFO  [main] hbase.PerformanceEvaluation: [SequentialWriteTest]    Min: 525574ms    Max: 553359ms    Avg: 539466ms
 ```
+
 #### 开启两个client，并设置--writeToWAL=false：
+
 ```
 2017-11-20 16:56:43,944 INFO  [TestClient-0] hbase.PerformanceEvaluation: save total time: 409123ms
 2017-11-20 16:56:43,944 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest latency log (microseconds), on 10000000 measures
@@ -408,6 +415,7 @@ flush上下限值：0.75
 2017-11-20 16:56:54,164 INFO  [main] hbase.PerformanceEvaluation: [SequentialWriteTest] Summary of timings (ms): [409404, 418733]
 2017-11-20 16:56:54,165 INFO  [main] hbase.PerformanceEvaluation: [SequentialWriteTest]    Min: 409404ms    Max: 418733ms    Avg: 414068ms
 ```
+
 ### 第二轮测试
 使用hbase自带测试工具，定制化修改rowkey的生成规则：vin码+纳秒时间戳；
 模拟业务上报，使用1000个VIN码循环写入，8个column，value设置为20bytes;
@@ -423,10 +431,12 @@ flush上下限值：0.75
 |10000000*4|         |            |                |            3|             1g|         512MB|      true  | 90%  |     |        | 4 clients|  该方式cpu利用率太高   |
 
 脚本参数调整：
+
 ```
 --flushCommits=false
 --autoFlush=false
 ```
+
 > ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1
 
 |保存条数  |花费时间ms|平均写入速度|99.99%写入耗时ms|DataNode个数|Region划分策略|memstore配置|writeToWAL|CPU |内存|磁盘I/O|其他配置 |备注|
