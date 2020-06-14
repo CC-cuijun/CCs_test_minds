@@ -124,17 +124,16 @@ flush上下限值：0.75
 > ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1
 
 测试结果：
-
 |保存条数|花费时间ms|平均写入速度|99.99%写入耗时ms|DataNode个数|Region划分策略|memstore配置|writeToWAL|CPU|其他配置|备注|
 | :----: | :----: | :----: |:----: | :----: |:----: |:----: |:----: |:----: |:----: |:----: |
 |10000000*3|  465524   |   21k/s*3  |   61.391       |            3|            10g|        255MB|      true  |  70% | 3 clients||
 
-
 ## 测试过程记录
+
 ### 第一轮测试
 
 跑一段时间后，Hbase报错：
-<pre>
+```
 2017-11-13 15:43:34.205 [htable-pool331929-t1] INFO  o.a.hadoop.hbase.client.AsyncProcess - #331929, table=LocationData, attempt=10/35 failed=200ops, last exception: org.apache.hadoop.hbase.RegionTooBusyException: org.apache.hadoop.hbase.RegionTooBusyException: Above memstore limit, regionName=LocationData,XXXL3BXXXH6128349_\x7F\xFF\xFE\xA0K\xD7\xB8\xA2_POSITIONANDSPEED_,1510557386775.b50b404296ab0f2493f33d1b7751de2b., server=tslave3.tsptest,16020,1510496758359, memstoreSize=537936880, blockingMemStoreSize=536870912
     at org.apache.hadoop.hbase.regionserver.HRegion.checkResources(HRegion.java:3587)
     at org.apache.hadoop.hbase.regionserver.HRegion.batchMutate(HRegion.java:2792)
@@ -165,8 +164,7 @@ on tslave3.tsptest,16020,1510496758359, tracking started null, retrying after=10
 on tslave3.tsptest,16020,1510496758359, tracking started null, retrying after=10081ms, replay=200ops
 2017-11-13 15:43:34.285 [pool-8-thread-2] INFO  o.a.hadoop.hbase.client.AsyncProcess - #331929, waiting for some tasks to finish. Expected max=0, tasksInProgress=10
 2017-11-13 15:43:34.289 [pool-8-thread-4] INFO  o.a.hadoop.hbase.client.AsyncProcess - #331930, waiting for some tasks to finish. Expected max=0, tasksInProgress=10
-</pre>
-
+```
 > 调整regions划分策略为1g后，不再出现该错误
 
 使用HBase自带测试工具，测试情况如下：
@@ -176,49 +174,47 @@ on tslave3.tsptest,16020,1510496758359, tracking started null, retrying after=10
 > 插入速度约15000条/s
 
 Hbase配置调整：
-<pre>
+```
 memstore=512MB
 regionsplit=5G
-</pre>
+```
 > 插入速度约18000条/s
 
 Hbase配置调整：
-<pre>
+```
 flush上下限值：0.75
-</pre>
+```
 > 插入速度约 18000条/s  
 
 脚本参数调整：
-<pre>
+```
 valueSize=20bytes
-</pre>
+```
 > 插入速度约：20000条/s
 
 脚本策略调整：
-<pre>
+```
 4个client同时插入（4个节点每个启一个client）
-</pre>
+```
 > 插入数度约：8000*4条/s（rowkey存在重复）
-<pre>
+```
 > 4个client同时插入（1个节点启4个clinet）
-</pre>
+```
 > 插入数度约：7500*4t/s
 
 Hbase配置项：
-<pre>
+```
 memstore=512MB
 regionsplit=1G
 flush上下限值：0.75
-</pre>
-
-
+```
 
 ### 优化测试工具（hbase自带测试工具）：
 #### 拆分region，情况如下：
 测试策略：
 > ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=true --autoFlush=true --columns=8 sequentialWrite 1 2>&1|tee result1.log
 
-<pre>
+```
 2017-11-20 16:13:56,218 INFO  [TestClient-0] hbase.PerformanceEvaluation: save total time: 390622ms
 2017-11-20 16:13:56,218 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest latency log (microseconds), on 10000000 measures
 2017-11-20 16:13:56,236 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Min      = 3.0
@@ -249,10 +245,9 @@ flush上下限值：0.75
 2017-11-20 16:13:56,339 INFO  [TestClient-0-EventThread] zookeeper.ClientCnxn: EventThread shut down
 2017-11-20 16:13:56,441 INFO  [TestClient-0] hbase.PerformanceEvaluation: Finished class org.apache.hadoop.hbase.PerformanceEvaluation$SequentialWriteTest in 390844ms at offset 0 for 10000000 rows (5.51 MB/s)
 2017-11-20 16:13:56,442 INFO  [TestClient-0] hbase.PerformanceEvaluation: Finished TestClient-0 in 390844ms over 10000000 rows
-</pre>
-
+```
 #### --writeToWAL=false情况如下：
-<pre>
+```
 2017-11-20 16:27:15,396 INFO  [TestClient-0] hbase.PerformanceEvaluation: save total time: 289756ms
 2017-11-20 16:27:15,396 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest latency log (microseconds), on 10000000 measures
 2017-11-20 16:27:15,425 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Min      = 3.0
@@ -283,11 +278,9 @@ flush上下限值：0.75
 2017-11-20 16:27:15,490 INFO  [TestClient-0-EventThread] zookeeper.ClientCnxn: EventThread shut down
 2017-11-20 16:27:15,593 INFO  [TestClient-0] hbase.PerformanceEvaluation: Finished class org.apache.hadoop.hbase.PerformanceEvaluation$SequentialWriteTest in 289952ms at offset 0 for 10000000 rows (7.43 MB/s)
 2017-11-20 16:27:15,593 INFO  [TestClient-0] hbase.PerformanceEvaluation: Finished TestClient-0 in 289952ms over 10000000 rows
-</pre>
-
+```
 #### 开启两个client
-<pre>
-2017-11-20 16:45:06,137 INFO  [TestClient-0] hbase.PerformanceEvaluation: save total time: 525269ms
+```2017-11-20 16:45:06,137 INFO  [TestClient-0] hbase.PerformanceEvaluation: save total time: 525269ms
 2017-11-20 16:45:06,138 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest latency log (microseconds), on 10000000 measures
 2017-11-20 16:45:06,165 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Min      = 3.0
 2017-11-20 16:45:06,165 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Avg      = 51.4780589
@@ -349,10 +342,9 @@ flush上下限值：0.75
 2017-11-20 16:45:34,307 INFO  [TestClient-1] hbase.PerformanceEvaluation: Finished TestClient-1 in 553359ms over 10000000 rows
 2017-11-20 16:45:34,308 INFO  [main] hbase.PerformanceEvaluation: [SequentialWriteTest] Summary of timings (ms): [525574, 553359]
 2017-11-20 16:45:34,309 INFO  [main] hbase.PerformanceEvaluation: [SequentialWriteTest]    Min: 525574ms    Max: 553359ms    Avg: 539466ms
-</pre>
-
+```
 #### 开启两个client，并设置--writeToWAL=false：
-<pre>
+```
 2017-11-20 16:56:43,944 INFO  [TestClient-0] hbase.PerformanceEvaluation: save total time: 409123ms
 2017-11-20 16:56:43,944 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest latency log (microseconds), on 10000000 measures
 2017-11-20 16:56:43,962 INFO  [TestClient-0] hbase.PerformanceEvaluation: SequentialWriteTest Min      = 3.0
@@ -415,9 +407,7 @@ flush上下限值：0.75
 2017-11-20 16:56:54,164 INFO  [TestClient-1] hbase.PerformanceEvaluation: Finished TestClient-1 in 418733ms over 10000000 rows
 2017-11-20 16:56:54,164 INFO  [main] hbase.PerformanceEvaluation: [SequentialWriteTest] Summary of timings (ms): [409404, 418733]
 2017-11-20 16:56:54,165 INFO  [main] hbase.PerformanceEvaluation: [SequentialWriteTest]    Min: 409404ms    Max: 418733ms    Avg: 414068ms
-
-</pre>
-
+```
 ### 第二轮测试
 使用hbase自带测试工具，定制化修改rowkey的生成规则：vin码+纳秒时间戳；
 模拟业务上报，使用1000个VIN码循环写入，8个column，value设置为20bytes;
@@ -430,14 +420,13 @@ flush上下限值：0.75
 |10000000|  293303   |  35k/s     |   32.213       |            3|             1g|         512MB|      false| 40%  |     |        |          |     |
 |10000000*2|  374142   |  26k/s*2   |   46.904       |            3|             1g|         512MB|      true | 55%  |     |        | 2 clients|     |
 |10000000*4|  371640   |  26k/s*4   |   46.583       |            3|             1g|         512MB|      false | 80%  |     |        | 4 clients|     |
-|10000000*4|  --       |            |                |            3|             1g|         512MB|      true  | 90%  |     |        | 4 clients|  该方式cpu利用率太高   |
+|10000000*4|         |            |                |            3|             1g|         512MB|      true  | 90%  |     |        | 4 clients|  该方式cpu利用率太高   |
 
 脚本参数调整：
-<pre>
+```
 --flushCommits=false
 --autoFlush=false
-</pre>
-
+```
 > ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=false --columns=8 sequentialWrite 1
 
 |保存条数  |花费时间ms|平均写入速度|99.99%写入耗时ms|DataNode个数|Region划分策略|memstore配置|writeToWAL|CPU |内存|磁盘I/O|其他配置 |备注|
