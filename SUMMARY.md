@@ -15,6 +15,7 @@
 	* [附录1. 记一次hbase基准测试](appendix/一次Hbase的基准测试.md)
 	* [附录2. ES基准测试](appendix/ES基准测试.md)
 	* [附录3. 压测服务器优化](appendix/压测服务器优化.md)
+	* [附录4. 自动化测试之我见](appendix/自动化测试之我见.md)
 * [后记](postscript/postscript.md)	
 
 	
