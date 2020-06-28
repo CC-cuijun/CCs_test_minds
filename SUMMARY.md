@@ -16,6 +16,7 @@
 	* [附录2. ES基准测试](appendix/ES基准测试.md)
 	* [附录3. 压测服务器优化](appendix/压测服务器优化.md)
 	* [附录4. 自动化测试之我见](appendix/自动化测试之我见.md)
+	* [附录5. 测试小工具集](appendix/测试小工具集.md)
 * [后记](postscript/postscript.md)	
 
 	
