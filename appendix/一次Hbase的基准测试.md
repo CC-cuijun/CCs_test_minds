@@ -71,7 +71,7 @@ $ bin/hbase org.apache.hadoop.hbase.PerformanceEvaluation sequentialWrite 1
    经查源码，该工具中randomWrite（随机写入）方式实际为rowkey的写入条数随机取，实际上会比期望的插入条数少很多，且生成的rowkey为顺序递增，不能均衡写入各个region，存在热点问题，不能满足我们的业务模拟；
    sequentialWrite（顺序写入）方式rowkey的生成方式为顺序递增，不能均衡写入各个region，同样存在热点问题，不能满足我们的业务模拟；
 ### 工具类定制化修改
-   对该工具类中sequentialWrite方式的rowkey生成方式做了修改，修改rowkey的生成规则为vin码+纳秒时间戳，为了消除热点问题，只选择1000个vin码，循环生成rowkey（模拟1000个车辆上报），为了不影响存储时间的统计，将整个rowkey预先放入内存中，在for循环内部直接读取rowkey，提高效率。
+   对该工具类中sequentialWrite方式的rowkey生成方式做了修改，以消除热点问题，为了不影响存储时间的统计，将整个rowkey预先放入内存中，在for循环内部直接读取rowkey，提高效率。
    该工具基于hbase 1.1.2版本工具类修改，不同的版本之间可能存在差异，需要针对不同的版本做定制化修改；
 ### 工具类的部署：
    将该工具包hbase-server-1.1.2-tests.jar,放到hbase的lib目录中，替换原有的hbase-server-1.1.2-tests.jar包，建议在单独的一个服务器上部署该hbase包；
@@ -138,7 +138,7 @@ flush上下限值：0.75
 
 跑一段时间后，Hbase报错：
 ```
-2017-11-13 15:43:34.205 [htable-pool331929-t1] INFO  o.a.hadoop.hbase.client.AsyncProcess - #331929, table=LocationData, attempt=10/35 failed=200ops, last exception: org.apache.hadoop.hbase.RegionTooBusyException: org.apache.hadoop.hbase.RegionTooBusyException: Above memstore limit, regionName=LocationData,XXXL3BXXXH6128349_\x7F\xFF\xFE\xA0K\xD7\xB8\xA2_POSITIONANDSPEED_,1510557386775.b50b404296ab0f2493f33d1b7751de2b., server=tslave3.tsptest,16020,1510496758359, memstoreSize=537936880, blockingMemStoreSize=536870912
+2017-11-13 15:43:34.205 [htable-pool331929-t1] INFO  o.a.hadoop.hbase.client.AsyncProcess - #331929, table=LocationData, attempt=10/35 failed=200ops, last exception: org.apache.hadoop.hbase.RegionTooBusyException: org.apache.hadoop.hbase.RegionTooBusyException: Above memstore limit, regionName=LocationData,XXXL3BXXXHssss_\x7F\xFF\xFE\xA0K\xD7\xB8\xA2_POSITION_,1510557386775.b50b404296ab0f2493f33d1b7751de2b., server=tslave3.tsptest,16020,1510496758359, memstoreSize=537936880, blockingMemStoreSize=536870912
     at org.apache.hadoop.hbase.regionserver.HRegion.checkResources(HRegion.java:3587)
     at org.apache.hadoop.hbase.regionserver.HRegion.batchMutate(HRegion.java:2792)
     at org.apache.hadoop.hbase.regionserver.HRegion.batchMutate(HRegion.java:2743)
@@ -152,7 +152,7 @@ flush上下限值：0.75
     at org.apache.hadoop.hbase.ipc.RpcExecutor$1.run(RpcExecutor.java:107)
     at java.lang.Thread.run(Thread.java:745)
 on tslave3.tsptest,16020,1510496758359, tracking started null, retrying after=10071ms, replay=200ops
-2017-11-13 15:43:34.225 [htable-pool331930-t1] INFO  o.a.hadoop.hbase.client.AsyncProcess - #331930, table=LocationData, attempt=10/35 failed=200ops, last exception: org.apache.hadoop.hbase.RegionTooBusyException: org.apache.hadoop.hbase.RegionTooBusyException: Above memstore limit, regionName=LocationData,XXXL3BXXXH6128349_\x7F\xFF\xFE\xA0K\xD7\xB8\xA2_POSITIONANDSPEED_,1510557386775.b50b404296ab0f2493f33d1b7751de2b., server=tslave3.tsptest,16020,1510496758359, memstoreSize=537936880, blockingMemStoreSize=536870912
+2017-11-13 15:43:34.225 [htable-pool331930-t1] INFO  o.a.hadoop.hbase.client.AsyncProcess - #331930, table=LocationData, attempt=10/35 failed=200ops, last exception: org.apache.hadoop.hbase.RegionTooBusyException: org.apache.hadoop.hbase.RegionTooBusyException: Above memstore limit, regionName=LocationData,XXXL3BXXXH6scsa_\x7F\xFF\xFE\xA0K\xD7\xB8\xA2_POSITION_,1510557386775.b50b404296ab0f2493f33d1b7751de2b., server=tslave3.tsptest,16020,1510496758359, memstoreSize=537936880, blockingMemStoreSize=536870912
     at org.apache.hadoop.hbase.regionserver.HRegion.checkResources(HRegion.java:3587)
     at org.apache.hadoop.hbase.regionserver.HRegion.batchMutate(HRegion.java:2792)
     at org.apache.hadoop.hbase.regionserver.HRegion.batchMutate(HRegion.java:2743)
@@ -421,8 +421,8 @@ flush上下限值：0.75
 ```
 
 ### 第二轮测试
-使用hbase自带测试工具，定制化修改rowkey的生成规则：vin码+纳秒时间戳；
-模拟业务上报，使用1000个VIN码循环写入，8个column，value设置为20bytes;
+使用hbase自带测试工具，定制化修改rowkey的生成规则；
+模拟业务上报，使用1000车辆数据循环写入，8个column，value设置为20bytes;
 
 > ./hbase org.apache.hadoop.hbase.PerformanceEvaluation --nomapred --rows=10000000 --table=test1 --valueSize=20 --compress=LZO  --flushCommits=true --autoFlush=true --columns=8 sequentialWrite 1
 
