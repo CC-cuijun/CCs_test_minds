@@ -1,4 +1,4 @@
-# ES(elasticsearch)基准测试
+# ES基准测试(elasticsearch)
 
 ## 存储能力测试
 
