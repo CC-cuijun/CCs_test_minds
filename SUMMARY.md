@@ -17,6 +17,10 @@
 	* [附录3. 压测服务器优化](appendix/压测服务器优化.md)
 	* [附录4. 自动化测试之我见](appendix/自动化测试之我见.md)
 	* [附录5. 测试小工具集](appendix/测试小工具集.md)
+	* [附录6. 性能测试之过程分析](appendix/性能测试之过程分析.md)
+	* [附录7. 自主学习总结](appendix/自主学习总结.md)
+
+
 * [后记](postscript/postscript.md)	
 
 	
