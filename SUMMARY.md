@@ -13,7 +13,7 @@
 	* [2.5.测试思维的重构](chapter-2/测试思维的重构.md)
 * [附录]()
 	* [附录1. 记一次hbase基准测试](appendix/一次Hbase的基准测试.md)
-	* [附录2. ES(elasticsearch)基准测试](appendix/ES(elasticsearch)基准测试.md)
+	* [附录2. ES基准测试](appendix/ES(elasticsearch)基准测试.md)
 	* [附录3. 压测服务器优化](appendix/压测服务器优化.md)
 	* [附录4. 自动化测试之我见](appendix/自动化测试之我见.md)
 	* [附录5. 测试小工具集](appendix/测试小工具集.md)
