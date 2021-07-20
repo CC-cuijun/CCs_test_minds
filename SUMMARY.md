@@ -19,6 +19,7 @@
 	* [附录5. 测试小工具集](appendix/测试小工具集.md)
 	* [附录6. 性能测试之过程分析](appendix/性能测试之过程分析.md)
 	* [附录7. 自主学习总结](appendix/自主学习总结.md)
+	* [附录8. 全链路压测方案](appendix/全链路压测方案.md)
 
 
 * [后记](postscript/postscript.md)	
